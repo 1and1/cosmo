@@ -37,7 +37,10 @@ external:
   content:
     connection:
       timeout: 10000
-    size: 1048576
+    max-header-count: 50
+    max-line-length: 8192
+    max-redirects: 10
+    max-size: 1048576
     non:
       proxyed:
         hosts:

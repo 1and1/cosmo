@@ -11,9 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
-
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -24,13 +21,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.RequestUserAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.unitedinternet.cosmo.model.Item;
 import org.unitedinternet.cosmo.model.NoteItem;
 import org.unitedinternet.cosmo.model.Stamp;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Calendar;
@@ -45,33 +42,24 @@ import net.fortuna.ical4j.model.Calendar;
 public class SimpleUrlContentReader implements UrlContentReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleUrlContentReader.class);
-
-    private static final int MAX_LINE_LENGTH = 8192;
-    private static final int MAX_HEADER_COUNT = 30;
-    private static final int MAX_REDIRECTS = 10;
-
+    
     private static final String Q_MARK = "?";
     private static final String AND = "&";
 
     private final ContentConverter converter;
-
     private final Validator validator;
 
-    @Value("${external.content.size}")
-    private int allowedContentSizeInBytes;
+    private final ContentSourceProcessor processor;    
+    private final ProxyFactory proxyFactory;
+    private final ExternalContentParamConfig config;
     
-    @Value("${external.content.user-agent}")
-    private String userAgent;
-
-    @Autowired
-    private ContentSourceProcessor processor;
-
-    @Autowired
-    private ProxyFactory proxyFactory;
-    
-    public SimpleUrlContentReader(ContentConverter converter, Validator validator) {
+    public SimpleUrlContentReader(ContentConverter converter, Validator validator, ContentSourceProcessor processor,
+            ProxyFactory proxyFactory, ExternalContentParamConfig config) {
         this.converter = converter;
         this.validator = validator;
+        this.processor = processor;
+        this.proxyFactory = proxyFactory;
+        this.config = config;
     }
 
     @Override
@@ -114,9 +102,9 @@ public class SimpleUrlContentReader implements UrlContentReader {
                 long startTime = System.currentTimeMillis();
                 while ((offset = contentStream.read(buffer)) != -1) {
                     counter.addAndGet(offset);
-                    if (counter.get() > allowedContentSizeInBytes) {
+                    if (counter.get() > this.config.getMaxSize()) {
                         throw new ExternalContentTooLargeException(
-                                "Content from url " + url + " is larger then " + this.allowedContentSizeInBytes);
+                                "Content from url " + url + " is larger then " + this.config.getMaxSize());
                     }
                     long now = System.currentTimeMillis();
                     if (startTime + timeoutInMillis < now) {
@@ -146,14 +134,14 @@ public class SimpleUrlContentReader implements UrlContentReader {
 
     private CloseableHttpClient buildClient(int timeoutInMillis, URL url) {
         RequestConfig config = RequestConfig.custom().setConnectionRequestTimeout(timeoutInMillis)
-                .setConnectTimeout(timeoutInMillis).setRedirectsEnabled(true).setMaxRedirects(MAX_REDIRECTS)
+                .setConnectTimeout(timeoutInMillis).setRedirectsEnabled(true).setMaxRedirects(this.config.getMaxRedirects())
                 .setProxy(this.proxyFactory.getProxy(url)).build();
         return HttpClientBuilder.create().setDefaultRequestConfig(config)
                 .setDefaultConnectionConfig(
                         ConnectionConfig
                                 .custom().setMessageConstraints(MessageConstraints.custom()
-                                        .setMaxHeaderCount(MAX_HEADER_COUNT).setMaxLineLength(MAX_LINE_LENGTH).build())
-                                .build()).addInterceptorLast(new RequestUserAgent(this.userAgent))
+                                        .setMaxHeaderCount(this.config.getMaxHeaderCount()).setMaxLineLength(this.config.getMaxLineLength()).build())
+                                .build()).addInterceptorLast(new RequestUserAgent(this.config.getUserAgent()))
                 .build();
     }
 
