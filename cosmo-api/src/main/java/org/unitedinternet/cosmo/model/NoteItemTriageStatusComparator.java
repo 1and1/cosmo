@@ -11,57 +11,65 @@ import java.util.Comparator;
 public class NoteItemTriageStatusComparator implements Comparator<NoteItem>, Serializable {
 
     boolean reverse = false;
-    
+
     public NoteItemTriageStatusComparator() {
     }
-     
+
     public NoteItemTriageStatusComparator(boolean reverse) {
         this.reverse = reverse;
     }
-    
+
     public int compare(NoteItem note1, NoteItem note2) {
-        if(note1.getUid().equals(note2.getUid())) {
+        if (note1.getUid().equals(note2.getUid())) {
             return 0;
         }
-     
-        // Calculate a rank depending on the type of item and
-        // the attributes present
-        long rank1 = getRank(note1);
-        long rank2 = getRank(note2);
-        
-        if(rank1>rank2) {
-            return reverse? -1 : 1;
-        }
-        else {
-            return reverse? 1 : -1;
+
+        //calculating ranks
+        long rank1 = calculateRank(note1);
+        long rank2 = calculateRank(note2);
+
+        // comparing ranks
+        return compareRanks(rank1, rank2);
+    }
+
+    //new method to handle various scenarios for calculating rank
+    private long calculateRank(NoteItem note) {
+        if (note.getTriageStatus() != null && note.getTriageStatus().getRank() != null) {
+            return calculateRankFromTriageStatus(note);
+        } else if (StampUtils.getBaseEventStamp(note) != null) {
+            return calculateRankFromEventStartDate(note);
+        } else if (note instanceof NoteOccurrence) {
+            return calculateRankFromOccurrenceDate(note);
+        } else {
+            return calculateRankFromModifiedDate(note);
         }
     }
-    
-    /**
-     * Calculate rank of NoteItem.  Rank is the absolute value of the
-     * triageStatus rank.  If triageStatus rank is not present, then
-     * it is the value in milliseconds of the start time of the event.
-     * If the note is not an event then it is the last modified date.
-     */
-    private long getRank(NoteItem note) {
-        // Use triageStatusRank * 1000 to normalize to
-        // unix timestamp in milliseconds. 
-        if(note.getTriageStatus()!=null && note.getTriageStatus().getRank()!=null) {
-            return note.getTriageStatus().getRank().scaleByPowerOfTen(3).longValue();
+
+    private long calculateRankFromTriageStatus(NoteItem note) {
+        // using triageStatusRank * 1000 to normalize to unix timestamp in milliseconds
+        return note.getTriageStatus().getRank().scaleByPowerOfTen(3).longValue();
+    }
+
+    private long calculateRankFromEventStartDate(NoteItem note) {
+        // Use startDate * -1
+        return -1 * StampUtils.getBaseEventStamp(note).getStartDate().getTime();
+    }
+
+    private long calculateRankFromOccurrenceDate(NoteItem note) {
+        // Use occurrence date * -1
+        return -1 * ((NoteOccurrence) note).getOccurrenceDate().getTime();
+    }
+
+    private long calculateRankFromModifiedDate(NoteItem note) {
+        // Use modified date * -1 as a last resort
+        return -1 * note.getModifiedDate();
+    }
+
+    private int compareRanks(long rank1, long rank2) {
+        if (rank1 > rank2) {
+            return reverse ? -1 : 1;
+        } else {
+            return reverse ? 1 : -1;
         }
-        
-        // otherwise use startDate * -1
-        BaseEventStamp eventStamp = StampUtils.getBaseEventStamp(note);
-        if(eventStamp!=null) {
-            return eventStamp.getStartDate().getTime()*-1;
-        }
-        
-        // or occurrence date * -1
-        if(note instanceof NoteOccurrence) {
-            return ((NoteOccurrence) note).getOccurrenceDate().getTime()*-1;
-        }
-        
-        // use modified date * -1 as a last resort
-        return note.getModifiedDate()*-1;
     }
 }

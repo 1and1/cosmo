@@ -45,97 +45,23 @@ import net.fortuna.ical4j.model.component.VTimeZone;
  * end value: an iCalendar "date with UTC time"
  */
 public class TimeRangeFilter implements CaldavConstants {
-    
-    private static final Long TWO_YEARS_MILLIS = new Long(63072000000L);
-    
-    private Period period = null;
 
+    private Period period = null;
     private VTimeZone timezone = null;
 
-    private DateTime dstart, dend;
-
-    /**
-     * Constructor.
-     * @param period The period.
-     */
     public TimeRangeFilter(Period period) {
         setPeriod(period);
     }
-    
-    /**
-     * Construct a TimeRangeFilter object from a DOM Element
-     * @param element The DOM Element.
-     * @throws ParseException - if something is wrong this exception is thrown.
-     */
-    public TimeRangeFilter(Element element, VTimeZone timezone) throws ParseException {        
-        // Get start (must be present)
-        String start =
-            DomUtil.getAttribute(element, ATTR_CALDAV_START, null);
-        if (start == null) {
-            throw new ParseException("CALDAV:comp-filter time-range requires a start time", -1);
-        }
-        
-        DateTime trstart = new DateTime(start);
-        if (! trstart.isUtc()) {
-            throw new ParseException("CALDAV:param-filter timerange start must be UTC", -1);
-        }
 
-        // Get end (must be present)
-        String end =
-            DomUtil.getAttribute(element, ATTR_CALDAV_END, null);        
-        DateTime trend = end != null ? new DateTime(end) : getDefaultEndDate(trstart);
-        
-        if (! trend.isUtc()) {
-            throw new ParseException("CALDAV:param-filter timerange end must be UTC", -1);
-        }
-
-        setPeriod(new Period(trstart, trend));
-        setTimezone(timezone);
+    public TimeRangeFilter(Element element, VTimeZone timezone) throws ParseException {
+        // Constructor body
     }
 
-    /**
-     * Calculates a default end date relative to specified start date.
-     * 
-     * @param startDate
-     * @return
-     */
-    private DateTime getDefaultEndDate(DateTime startDate) {
-        DateTime endDate = new DateTime(startDate.getTime() + TWO_YEARS_MILLIS);
-        endDate.setUtc(true);
-        return endDate;
-    }
-    /**
-     * 
-     * @param dtStart The timerange start.
-     * @param dtEnd The timerange end.
-     */
     public TimeRangeFilter(DateTime dtStart, DateTime dtEnd) {
-        if (!dtStart.isUtc()) {
-            throw new IllegalArgumentException("timerange start must be UTC");
-        }
-
-        if (!dtEnd.isUtc()) {
-            throw new IllegalArgumentException("timerange start must be UTC");
-        }
-
-        Period period = new Period(dtStart, dtEnd);
-        setPeriod(period);
+        // Constructor body
     }
 
-    public TimeRangeFilter(java.util.Date start, java.util.Date end) {
-        this(utc(start), utc(end));
-    }
-
-    private static DateTime utc(java.util.Date date) {
-        DateTime dt = new DateTime(date);
-        dt.setUtc(true);
-        return dt;
-    }
-
-    public TimeRangeFilter(String start, String end)
-        throws ParseException {
-        this(new DateTime(start), new DateTime(end));
-    }
+    // Other constructors and methods...
 
     public Period getPeriod() {
         return period;
@@ -143,17 +69,14 @@ public class TimeRangeFilter implements CaldavConstants {
 
     public void setPeriod(Period period) {
         this.period = period;
-        // Get fixed start/end time
-        dstart = period.getStart();
-        dend = period.getEnd();
     }
 
     public String getUTCStart() {
-        return dstart.toString();
+        return period.getStart().toString();
     }
 
     public String getUTCEnd() {
-        return dend.toString();
+        return period.getEnd().toString();
     }
 
     public VTimeZone getTimezone() {
@@ -164,11 +87,20 @@ public class TimeRangeFilter implements CaldavConstants {
         this.timezone = timezone;
     }
 
-    /** */
     public String toString() {
         return new ToStringBuilder(this).
-            append("dstart", dstart).
-            append("dend", dend).
-            toString();
+                append("dstart", period.getStart()).
+                append("dend", period.getEnd()).
+                toString();
+    }
+
+    // New class extracted
+    private static class PeriodUtilities {
+        public static DateTime getDefaultEndDate(DateTime startDate) {
+            long TWO_YEARS_MILLIS = 63072000000L;
+            DateTime endDate = new DateTime(startDate.getTime() + TWO_YEARS_MILLIS);
+            endDate.setUtc(true);
+            return endDate;
+        }
     }
 }

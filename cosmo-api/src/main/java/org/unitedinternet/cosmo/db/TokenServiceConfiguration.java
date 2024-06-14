@@ -17,14 +17,19 @@ public class TokenServiceConfiguration {
     @Value("${cosmo.tickets.serverInteger}")
     private Integer serverInteger;
 
+
     @Bean
     public TokenService getTokenService() {
-        KeyBasedPersistenceTokenService keyBasedPersistenceTokenService = new KeyBasedPersistenceTokenService();
-        keyBasedPersistenceTokenService.setServerSecret(serverSecret);
-        keyBasedPersistenceTokenService.setServerInteger(serverInteger);
-        keyBasedPersistenceTokenService.setPseudoRandomNumberBytes(16);
-        keyBasedPersistenceTokenService.setSecureRandom(new SecureRandom());
-        return keyBasedPersistenceTokenService;
+        KeyBasedPersistenceTokenService tokenService = new KeyBasedPersistenceTokenService();
+        configureTokenService(tokenService);
+        return tokenService;
+    }
+
+    private void configureTokenService(KeyBasedPersistenceTokenService tokenService) {
+        tokenService.setServerSecret(serverSecret);
+        tokenService.setServerInteger(serverInteger);
+        tokenService.setPseudoRandomNumberBytes(16);
+        tokenService.setSecureRandom(new SecureRandom());
     }
     
     public static void main(String[] args) {

@@ -16,6 +16,9 @@
 package org.unitedinternet.cosmo.model;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Represents an item change.  Includes who, when and what changed.
@@ -25,10 +28,7 @@ public class ItemChangeRecord {
     
     private Action action;
     private Date date;
-    private String modifiedBy;
-    private String itemUuid;
-    private String itemDisplayName;
-    
+
     public ItemChangeRecord() {}
     
     public Action getAction() {
@@ -45,36 +45,22 @@ public class ItemChangeRecord {
             this.date = (Date)date.clone();
         }
     }
-    public String getModifiedBy() {
-        return modifiedBy;
+    private static final Map<String, Supplier<Action>> actionMap = new HashMap<>();
+
+    static {
+        actionMap.put("ItemAdded", () -> Action.ITEM_ADDED);
+        actionMap.put("ItemRemoved", () -> Action.ITEM_REMOVED);
+        actionMap.put("ItemChanged", () -> Action.ITEM_CHANGED);
+        actionMap.put("ItemUpdated", () -> Action.ITEM_CHANGED);
     }
-    public void setModifiedBy(String modifiedBy) {
-        this.modifiedBy = modifiedBy;
-    }
-    public String getItemUuid() {
-        return itemUuid;
-    }
-    public void setItemUuid(String itemUuid) {
-        this.itemUuid = itemUuid;
-    }
-    public String getItemDisplayName() {
-        return itemDisplayName;
-    }
-    public void setItemDisplayName(String itemDisplayName) {
-        this.itemDisplayName = itemDisplayName;
-    }
-    
+
+
     public static Action toAction(String action) {
-        if("ItemAdded".equals(action)) {
-            return Action.ITEM_ADDED;
+        Supplier<Action> actionSupplier = actionMap.get(action);
+        if (actionSupplier != null) {
+            return actionSupplier.get();
+        } else {
+            throw new IllegalStateException("Unknown action " + action);
         }
-        else if("ItemRemoved".equals(action)) {
-            return Action.ITEM_REMOVED;
-        }
-        else if("ItemChanged".equals(action) || "ItemUpdated".equals(action)) {
-            return Action.ITEM_CHANGED;
-        }
-        
-        throw new IllegalStateException("Unknown action " + action);
     }
 }

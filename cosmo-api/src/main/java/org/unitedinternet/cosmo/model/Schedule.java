@@ -51,11 +51,6 @@ public class Schedule {
     public String getProperty(String key) {
         return properties == null ? null : properties.get(key);
     }
-    
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
 
     @Override
     public boolean equals(Object obj) {
@@ -63,14 +58,20 @@ public class Schedule {
             return false;
         }
 
-        Schedule s2 = (Schedule) obj;
-        return new EqualsBuilder().append(name, s2.name).append(properties,
-                s2.properties).isEquals();
+        Schedule other = (Schedule) obj;
+        return arePropertiesEqual(other) && areNamesEqual(other);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(name).append(properties)
-                .toHashCode();
+        return new HashCodeBuilder().append(name).append(properties).toHashCode();
+    }
+
+    private boolean arePropertiesEqual(Schedule other) {
+        return new EqualsBuilder().append(properties, other.properties).isEquals();
+    }
+
+    private boolean areNamesEqual(Schedule other) {
+        return new EqualsBuilder().append(name, other.name).isEquals();
     }
 }

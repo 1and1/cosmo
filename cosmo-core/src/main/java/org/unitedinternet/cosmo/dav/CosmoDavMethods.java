@@ -33,7 +33,7 @@ import org.unitedinternet.cosmo.CosmoConstants;
  * more information on these methods.
  */
 public class CosmoDavMethods {
-	
+
     private static Map<String, Integer> methods = new HashMap<>();
 
     /**
@@ -82,20 +82,6 @@ public class CosmoDavMethods {
     }
 
     /**
-     * Augments superclass method to also return <code>true</code> for
-     * <code>MKCALENDAR</code> requests.
-     * @param request DavServletRequest.
-     * @return IF the calendar collection request is created.
-     */
-    public static boolean
-        isCreateCalendarCollectionRequest(DavServletRequest request) {
-        if (getMethodCode(request.getMethod()) == DAV_MKCALENDAR) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Return the type code for a dav method. Valid type codes are
      * positive. Unknown methods are represented by <code>0</code>.
      * @param method The dav method.
@@ -117,5 +103,18 @@ public class CosmoDavMethods {
         addMethodCode(METHOD_MKTICKET, DAV_MKTICKET);
         addMethodCode(METHOD_DELTICKET, DAV_DELTICKET);
         addMethodCode(METHOD_MKCALENDAR, DAV_MKCALENDAR);
+    }
+
+    /**
+     * Augments superclass method to also return <code>true</code> for
+     * <code>MKCALENDAR</code> requests.
+     * @param request DavServletRequest.
+     * @return IF the calendar collection request is created.
+     */
+    private static boolean isCreateCalendarCollectionRequest(DavServletRequest request) {
+        if (getMethodCode(request.getMethod()) == DAV_MKCALENDAR) {
+            return true;
+        }
+        return false;
     }
 }
